@@ -85,3 +85,75 @@ LEFT JOIN Examinations ON Examinations.student_id = Students.student_id AND Subj
 GROUP BY Students.student_id, Students.student_name, Subjects.subject_name
 ORDER BY Students.student_id, Subjects.subject_name;
 
+
+
+-- 570. Managers with at Least 5 Direct Reports
+SELECT e1.name FROM Employee as e1
+JOIN Employee as e2
+ON e1.id = e2.managerId
+GROUP BY e1.id
+HAVING COUNT(*) >= 5;
+
+-- 1934. Confirmation Rate
+SELECT Signups.user_id, 
+IFNULL(ROUND(SUM(CASE WHEN Confirmations.action = 'confirmed' THEN 1 ELSE 0 END) / COUNT(*),2),0.00) AS confirmation_rate
+FROM Signups
+LEFT JOIN Confirmations
+ON Signups.user_id = Confirmations.user_id
+GROUP BY Signups.user_id;
+
+
+
+-- 620. Not Boring Movies
+SELECT id, movie, description, rating FROM Cinema
+WHERE id % 2 = 1 AND description != 'boring'
+ORDER BY rating DESC;
+
+
+-- 1251. Average Selling Price
+SELECT Prices.product_id, 
+    CASE
+        WHEN ROUND(SUM(Prices.price * UnitsSold.units)/SUM(UnitsSold.units),2) IS NULL THEN 0
+        ELSE ROUND(SUM(Prices.price * UnitsSold.units)/SUM(UnitsSold.units),2)
+    END AS average_price 
+FROM Prices
+LEFT JOIN UnitsSold ON Prices.product_id = UnitsSold.product_id AND UnitsSold.purchase_date BETWEEN Prices.start_date AND Prices.end_date
+GROUP BY Prices.product_id;
+
+-- 1075. Project Employees I
+SELECT Project.project_id, ROUND(SUM(Employee.experience_years)/COUNT(*),2) AS average_years FROM Project
+JOIN Employee ON Project.employee_id = Employee.employee_id
+GROUP BY Project.project_id;
+
+
+-- 1633. Percentage of Users Attended a Contest
+SELECT contest_id, ROUND(COUNT(*) / (SELECT COUNT(*) FROM Users) * 100,2) AS percentage FROM Register
+GROUP BY contest_id
+ORDER BY percentage DESC, contest_id;
+
+
+-- 1211. Queries Quality and Percentage
+SELECT query_name, ROUND(SUM(rating/position)/COUNT(*),2) AS quality, 
+ROUND(SUM(CASE WHEN rating < 3 THEN 1 ELSE 0 END) * 100 / COUNT(*),2) AS poor_query_percentage
+FROM Queries
+WHERE query_name IS NOT NULL
+GROUP BY query_name;
+
+
+-- 1193. Monthly Transactions I
+SELECT SUBSTR(trans_date,1,7) AS month,
+        country, 
+        COUNT(*) AS trans_count, 
+        SUM(CASE WHEN state = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+        SUM(amount) AS trans_total_amount, 
+        SUM(CASE WHEN state = 'approved' THEN amount ELSE 0 END) AS approved_total_amount
+FROM Transactions
+GROUP BY country, MONTH(trans_date), YEAR(trans_date);
+
+
+
+
+
+-- 2356. Number of Unique Subjects Taught by Each Teacher
+SELECT teacher_id, COUNT(DISTINCT subject_id) AS cnt FROM Teacher
+GROUP BY teacher_id;
