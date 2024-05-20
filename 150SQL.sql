@@ -152,8 +152,50 @@ GROUP BY country, MONTH(trans_date), YEAR(trans_date);
 
 
 
+-----------------SORTING AND GROUPING-----------------------
 
 
 -- 2356. Number of Unique Subjects Taught by Each Teacher
 SELECT teacher_id, COUNT(DISTINCT subject_id) AS cnt FROM Teacher
 GROUP BY teacher_id;
+
+
+-- 1141. User Activity for the Past 30 Days I
+SELECT activity_date AS day, COUNT(DISTINCT user_id) AS active_users
+FROM Activity
+WHERE DATE_ADD(activity_date, INTERVAL 30 DAY) >  '2019-07-27' AND activity_date <= '2019-07-27'
+GROUP BY activity_date
+ORDER BY activity_date;
+
+
+
+-- 596. Classes More Than 5 Students
+SELECT class FROM Courses
+GROUP BY class 
+HAVING COUNT(*) >= 5;
+
+-- 1729. Find Followers Count
+SELECT user_id, COUNT(*) AS followers_count FROM Followers
+GROUP BY user_id
+ORDER BY user_id;
+
+-- 619. Biggest Single Number
+SELECT
+    CASE 
+        WHEN COUNT(*) = 1 THEN num
+        ELSE NULL
+    END AS num
+FROM (
+    SELECT num FROM MyNumbers
+    GROUP BY num
+    HAVING COUNT(*) = 1
+    ORDER BY num DESC LIMIT 1
+) AS derived_table;
+
+
+-- 1045. Customers Who Bought All Products
+SELECT customer_id FROM Customer
+INNER JOIN Product
+ON Customer.product_key = Product.product_key
+GROUP BY customer_id
+HAVING COUNT(DISTINCT Customer.product_key) = (SELECT COUNT(*) FROM Product);
