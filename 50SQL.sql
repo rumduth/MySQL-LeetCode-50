@@ -150,6 +150,37 @@ SELECT SUBSTR(trans_date,1,7) AS month,
 FROM Transactions
 GROUP BY country, MONTH(trans_date), YEAR(trans_date);
 
+-- 1174. Immediate Food Delivery II
+SELECT ROUND(100 *
+((SELECT 
+    COUNT(DISTINCT customer_id) FROM (
+        SELECT customer_id, order_date, 
+        MIN(order_date) OVER(PARTITION BY customer_id) AS pref_order,
+        MIN(customer_pref_delivery_date) OVER(PARTITION BY customer_id) AS pref_date
+        FROM Delivery
+    ) AS helper
+    WHERE helper.order_date = helper.pref_date && helper.order_date = helper.pref_order) 
+    / 
+    (SELECT COUNT(DISTINCT customer_id) FROM Delivery)),2)
+AS immediate_percentage
+
+
+-- 550. Game Play Analysis IV
+SELECT ROUND((
+   SELECT COUNT(DISTINCT player_id) FROM 
+    (
+        SELECT player_id, event_date, MIN(event_date) OVER(PARTITION BY player_id) AS first_day
+        FROM Activity
+    ) AS helper
+    WHERE DATE_ADD(helper.first_day,INTERVAL 1 DAY) = event_date 
+)
+/ 
+(SELECT COUNT(DISTINCT player_id) FROM Activity)
+,2) AS fraction
+
+
+
+
 
 
 -----------------SORTING AND GROUPING-----------------------
@@ -166,6 +197,18 @@ FROM Activity
 WHERE DATE_ADD(activity_date, INTERVAL 30 DAY) >  '2019-07-27' AND activity_date <= '2019-07-27'
 GROUP BY activity_date
 ORDER BY activity_date;
+
+
+
+-- 1070. Product Sales Analysis III
+SELECT helper.product_id, first_year, helper.quantity, helper.price FROM
+(
+    SELECT product_id, year, quantity, price, MIN(year) OVER(PARTITION BY product_id) AS first_year
+    FROM Sales
+) AS helper
+INNER JOIN Product
+ON helper.product_id = Product.product_id
+WHERE helper.year = helper.first_year;
 
 
 
@@ -199,3 +242,116 @@ INNER JOIN Product
 ON Customer.product_key = Product.product_key
 GROUP BY customer_id
 HAVING COUNT(DISTINCT Customer.product_key) = (SELECT COUNT(*) FROM Product);
+
+
+
+
+
+
+-----------------ADVANCED SELECT AND JOINS----------------------
+
+-- 1731. The Number of Employees Which Report to Each Employee
+SELECT e1.employee_id, e1.name, COUNT(*) AS reports_count, ROUND(AVG(e2.age)) AS average_age
+FROM Employees AS e1
+INNER JOIN Employees AS e2
+WHERE e1.employee_id = e2.reports_to
+GROUP BY e1.employee_id
+ORDER BY e1.employee_id;
+
+-- 1789. Primary Department for Each Employee
+SELECT employee_id, department_id
+FROM
+(
+    SELECT employee_id, department_id, primary_flag, COUNT(*) OVER(PARTITION BY employee_id) AS cnt FROM Employee
+) AS derived
+WHERE derived.cnt = 1 OR derived.primary_flag = 'Y';
+
+
+-- 610. Triangle Judgement
+SELECT *, 
+CASE 
+    WHEN x + y > z AND x + z > y AND y + z > x THEN "Yes"
+    ELSE "No"
+END AS triangle
+FROM Triangle;
+
+-- 180. Consecutive Numbers
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-----------------Subqueries----------------------
+
+-- 1978. Employees Whose Manager Left the Company
+SELECT employee_id FROM Employees
+WHERE manager_id NOT IN (SELECT DISTINCT employee_id FROM Employees) AND salary < 30000
+ORDER BY employee_id;
+
+
+
+-- 626. Exchange Seats
+
+
+-----------------Advanced String Functions / Regex / Clause----------------------
+-- 1667. Fix Names in a Table
+SELECT user_id, CONCAT(UPPER(SUBSTR(name,1,1)),LOWER(SUBSTR(name,2))) AS name 
+FROM Users
+ORDER BY user_id;
+
+-- 1527. Patients With a Condition
+
+SELECT patient_id, patient_name, conditions FROM Patients
+WHERE conditions LIKE "% DIAB1%" || conditions LIKE "DIAB1%";
+
+-- 196. Delete Duplicate Emails
+DELETE FROM Person 
+WHERE id NOT IN
+(
+    SELECT min_id FROM
+    (
+        SELECT id, email, MIN(id) OVER(PARTITION BY email) AS min_id FROM Person
+    ) AS helper
+    WHERE helper.id = helper.min_id
+);
+
+-- 176. Second Highest Salary
+# Write your MySQL query statement below
+SELECT
+    CASE 
+        WHEN COUNT(*) = 1 THEN salary
+        ELSE NULL
+    END AS SecondHighestSalary
+FROM (
+    SELECT salary FROM Employee
+    GROUP BY salary
+    ORDER BY salary DESC LIMIT 1 OFFSET 1
+) AS derived_table;
+
+-- 1484. Group Sold Products By The Date
+# Write your MySQL query statement below
+SELECT sell_date, COUNT(DISTINCT product) AS num_sold, GROUP_CONCAT(DISTINCT product ORDER BY product) AS products
+FROM Activities
+GROUP BY sell_date;
+
+-- 1327. List the Products Ordered in a Period
+# Write your MySQL query statement below
+SELECT Products.product_name, SUM(unit) as unit FROM Orders
+JOIN Products
+ON Products.product_id = Orders.product_id
+WHERE order_date BETWEEN "2020-02-01" AND "2020-02-29"
+GROUP BY Products.product_id
+HAVING SUM(unit) >= 100;
+
+-- 1517. Find Users With Valid E-Mails
+SELECT user_id, name, mail FROM Users
+WHERE mail REGEXP '^[a-zA-Z][a-zA-Z0-9_\\.-]*@leetcode\\.com$';
