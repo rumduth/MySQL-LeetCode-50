@@ -276,16 +276,54 @@ END AS triangle
 FROM Triangle;
 
 -- 180. Consecutive Numbers
+SELECT DISTINCT num AS ConsecutiveNums FROM
+(
+    SELECT 
+    id,
+    num,
+    LEAD(num,1) OVER(ORDER BY id) AS next_value,
+    LEAD(num,2) OVER(ORDER BY id) AS next_next_value,
+    LEAD(id,2) OVER(ORDER BY id) AS next_next_id
+
+FROM 
+    Logs
+) AS helper
+WHERE num = next_value AND num = next_next_value AND id + 2 = next_next_id;
+
+
+-- 1164. Product Price at a Given Date
 
 
 
+-- 1204. Last Person to Fit in the Bus
+WITH cte AS(
+    SELECT
+        person_name,
+        SUM(weight) OVER(ORDER BY turn) AS total_weight,
+        LAG(person_name) OVER(ORDER BY turn) AS prev_person
+    FROM Queue
+),
+query1 AS(
+    SELECT * FROM cte
+    WHERE total_weight > 1000
+    LIMIT 1
+),
+query2 AS(
+    SELECT 
+        CASE
+            WHEN COUNT(*) = 1 THEN prev_person
+            ELSE
+                (SELECT person_name FROM Queue WHERE turn = (SELECT MAX(turn) FROM Queue)) 
+        END AS person_name
+    FROM query1
+)
+SELECT person_name FROM query2;
 
 
-
-
-
-
-
+-- 1907. Count Salary Categories
+SELECT "Low Salary" AS category, SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS accounts_count FROM Accounts 
+UNION SELECT "Average Salary", SUM(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 ELSE 0 END) FROM Accounts
+UNION SELECT "High Salary", SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) FROM Accounts;
 
 
 
@@ -300,6 +338,47 @@ ORDER BY employee_id;
 
 
 -- 626. Exchange Seats
+
+WITH cte AS (
+    SELECT id, student,
+    LAG(student) OVER(ORDER BY id) AS prev,
+    LEAD(student) OVER(ORDER BY id) AS next,
+    COUNT(id) OVER() AS total
+    FROM Seat
+)
+
+SELECT id, 
+    CASE 
+        WHEN cte.total = id AND cte.total % 2 = 1 THEN cte.student
+        WHEN cte.id % 2 = 1 THEN cte.next
+        ELSE cte.prev
+    END AS student
+FROM cte;
+
+
+-- 1341. Movie Rating
+WITH cte AS(
+    SELECT Users.name, Movies.title, rating, created_at FROM MovieRating
+    JOIN Movies ON MovieRating.movie_id = Movies.movie_id
+    JOIN Users ON MovieRating.user_id = Users.user_id
+),
+query1 AS(
+    SELECT name, COUNT(title) AS count FROM cte
+    GROUP BY name
+    ORDER BY count DESC, name
+    LIMIT 1
+),
+query2 AS(
+    SELECT title, AVG(rating) AS avg_rating FROM cte
+    WHERE YEAR(created_at) = 2020 AND MONTH(created_at) = 2
+    GROUP BY(title)
+    ORDER BY avg_rating DESC, title
+    LIMIT 1
+)
+
+SELECT name AS results FROM query1
+UNION ALL
+SELECT title FROM query2;
 
 
 -----------------Advanced String Functions / Regex / Clause----------------------
