@@ -183,6 +183,13 @@ SELECT ROUND((
 
 
 
+
+
+
+
+
+
+
 -----------------SORTING AND GROUPING-----------------------
 
 
@@ -248,6 +255,17 @@ HAVING COUNT(DISTINCT Customer.product_key) = (SELECT COUNT(*) FROM Product);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 -----------------ADVANCED SELECT AND JOINS----------------------
 
 -- 1731. The Number of Employees Which Report to Each Employee
@@ -292,7 +310,34 @@ WHERE num = next_value AND num = next_next_value AND id + 2 = next_next_id;
 
 
 -- 1164. Product Price at a Given Date
+WITH productTable AS
+(
+    SELECT DISTINCT product_id FROM Products
+),
+filter_day AS
+(
+    SELECT product_id, MAX(change_date) AS change_date FROM Products
+    WHERE change_date <= "2019-08-16"
+    GROUP BY product_id
+),
+filter_price AS 
+(
+    SELECT Products.product_id, new_price FROM Products
+    JOIN filter_day
+    ON filter_day.product_id = Products.product_id AND Products.change_date = filter_day.change_date
+),
+outcome AS(
+    SELECT productTable.product_id, 
+    CASE
+        WHEN filter_price.new_price IS NULL THEN 10
+        ELSE filter_price.new_price 
+    END AS price    
+    FROM productTable 
+    LEFT JOIN filter_price
+    ON productTable.product_id = filter_price.product_id
+)
 
+SELECT * FROM outcome;
 
 
 -- 1204. Last Person to Fit in the Bus
@@ -324,6 +369,18 @@ SELECT person_name FROM query2;
 SELECT "Low Salary" AS category, SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS accounts_count FROM Accounts 
 UNION SELECT "Average Salary", SUM(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 ELSE 0 END) FROM Accounts
 UNION SELECT "High Salary", SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) FROM Accounts;
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -379,6 +436,55 @@ query2 AS(
 SELECT name AS results FROM query1
 UNION ALL
 SELECT title FROM query2;
+
+
+-- 1321. Restaurant Growth
+WITH sortCustomer AS (
+    SELECT customer_id, name, visited_on, SUM(amount) AS amount FROM Customer
+    GROUP BY visited_on
+    ORDER BY visited_on
+),
+sumMoney AS(
+    SELECT *, SUM(amount) OVER (ORDER BY visited_on) AS totalAmount FROM sortCustomer
+),
+WeekMoney AS (
+    SELECT *,
+    totalAmount - LAG(totalAmount,7) OVER(ORDER BY visited_on) AS weeklyMoney FROM sumMoney
+),
+filterDay AS (
+    SELECT * FROM WeekMoney 
+    WHERE visited_on >= ((SELECT MIN(visited_on) FROM WeekMoney) + INTERVAL 6 DAY)
+),
+gettingSum AS(
+    SELECT visited_on, 
+        CASE 
+            WHEN weeklyMoney is NULL THEN totalAmount
+            ELSE weeklyMoney
+        END AS amount
+    FROM filterDay
+),
+outcome AS(
+    SELECT *, ROUND(amount/7,2) AS average_amount
+    FROM gettingSum
+)
+
+SELECT * FROM outcome;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -----------------Advanced String Functions / Regex / Clause----------------------
