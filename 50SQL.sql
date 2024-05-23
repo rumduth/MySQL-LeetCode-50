@@ -473,6 +473,58 @@ SELECT * FROM outcome;
 
 
 
+-- 602. Friend Requests II: Who Has the Most Friends
+
+WITH people AS (
+    SELECT DISTINCT requester_id AS id FROM RequestAccepted
+    UNION
+    SELECT DISTINCT accepter_id FROM RequestAccepted
+),
+friends AS (
+    SELECT id, COUNT(*) AS num FROM people
+    LEFT JOIN RequestAccepted
+    ON people.id = requester_id OR people.id = accepter_id
+    GROUP BY id
+    ORDER BY num DESC
+    LIMIT 1
+)
+
+SELECT * FROM friends;
+
+
+
+
+-- 585. Investments in 2016
+WITH T AS (
+    SELECT tiv_2016,
+    COUNT(*) OVER(PARTITION BY tiv_2015) AS cnt1,
+    COUNT(*) OVER(PARTITION BY lat, lon) AS cnt2
+    FROM Insurance
+)
+SELECT ROUND(SUM(tiv_2016),2) AS tiv_2016
+FROM T 
+WHERE cnt1 > 1 AND cnt2 = 1;
+
+
+
+-- 185. Department Top Three Salaries
+WITH rankTable AS (
+    SELECT name, salary, departmentId, DENSE_RANK() OVER(PARTITION BY departmentId ORDER BY salary DESC) AS ranking FROM Employee
+),
+filterRankTable AS (
+    SELECT * FROM rankTable
+    WHERE ranking <= 3
+),
+outcome AS (
+    SELECT Department.name AS Department, filterRankTable.name AS Employee, salary AS Salary FROM filterRankTable
+    JOIN Department
+    ON filterRankTable.departmentId = Department.id
+)
+
+SELECT * FROM outcome;
+
+
+
 
 
 
